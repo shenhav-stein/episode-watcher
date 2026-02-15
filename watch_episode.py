@@ -12,7 +12,7 @@ from email.mime.text import MIMEText
 
 SERIES_NAME = "A Knight of the Seven Kingdoms"
 BASE_URL = "https://thepiratebay.org"
-SEARCH_URL = "https://thepiratebay.org/search.php?q=A+Knight+of+the+Seven+Kingdoms&all=on&search=Pirate+Search&page=0&orderby="
+SEARCH_URL = "https://thepiratebay.org/rss/search/A+Knight+of+the+Seven+Kingdoms/0/99/0"
 
 STATE_FILE = "state.json"
 
@@ -70,3 +70,4 @@ if table:
             break
 else:
     print("No searchResult table found!")
+
