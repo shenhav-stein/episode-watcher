@@ -1,18 +1,12 @@
 import requests
-from bs4 import BeautifulSoup
 import smtplib
 import json
-import re
 import os
 from email.mime.text import MIMEText
-
-# =========================
-# CONFIG
-# =========================
+import xml.etree.ElementTree as ET
 
 SERIES_NAME = "A Knight of the Seven Kingdoms"
-BASE_URL = "https://thepiratebay.org"
-SEARCH_URL = "https://thepiratebay.org/rss/search/A+Knight+of+the+Seven+Kingdoms/0/99/0"
+RSS_URL = "https://thepiratebay.org/rss/search/A+Knight+of+the+Seven+Kingdoms/0/99/0"
 
 STATE_FILE = "state.json"
 
@@ -20,54 +14,51 @@ EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 TO_EMAIL = "shenhavstein@gmail.com"
 
-# =========================
-# Load or initialize state
-# =========================
-
+# Load state
 if os.path.exists(STATE_FILE):
     with open(STATE_FILE, "r") as f:
         state = json.load(f)
 else:
-    state = {"next_episode": 2}  # you've watched episode 01
+    state = {"next_episode": 2}
 
 episode_number = state["next_episode"]
 episode_str = f"S01E{episode_number:02d}"
 
 print(f"Looking for {episode_str}")
 
-# =========================
-# Fetch website
-# =========================
-
-headers = {
-    "User-Agent": "Mozilla/5.0"
-}
-
-response = requests.get(SEARCH_URL, headers=headers, timeout=30)
-soup = BeautifulSoup(response.text, "html.parser")
-
-table = soup.find("table", id="searchResult")
+response = requests.get(RSS_URL, timeout=30)
+root = ET.fromstring(response.content)
 
 found_valid = False
 valid_entry_text = ""
 
-if table:
-    rows = table.find_all("tr")[1:]
+for item in root.findall(".//item"):
+    title = item.find("title").text
 
-    print(f"Found {len(rows)} rows")
+    print("RSS TITLE:", title)
 
-    for row in rows:
-        title_tag = row.find("a", class_="detLink")
-        if not title_tag:
-            continue
+    if SERIES_NAME in title and episode_str in title:
+        found_valid = True
+        valid_entry_text = title
+        break
 
-        title = title_tag.get_text(strip=True)
-        print("TITLE FOUND:", title)
+if found_valid:
 
-        if SERIES_NAME in title and episode_str in title:
-            found_valid = True
-            valid_entry_text = title
-            break
+    msg = MIMEText(f"New episode available:\n\n{valid_entry_text}")
+    msg["Subject"] = f"{SERIES_NAME} {episode_str} is Available!"
+    msg["From"] = EMAIL_ADDRESS
+    msg["To"] = TO_EMAIL
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_ADDRESS, TO_EMAIL, msg.as_string())
+
+    state["next_episode"] += 1
+
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f)
+
+    print("Email sent and episode incremented.")
+
 else:
-    print("No searchResult table found!")
-
+    print("No valid episode found.")
