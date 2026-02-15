@@ -70,31 +70,3 @@ if table:
             break
 else:
     print("No searchResult table found!")
-
-# =========================
-# Send email if found
-# =========================
-
-if found_valid:
-
-    msg = MIMEText(f"New episode available:\n\n{valid_entry_text}")
-    msg["Subject"] = f"{SERIES_NAME} {episode_str} is Available!"
-    msg["From"] = EMAIL_ADDRESS
-    msg["To"] = TO_EMAIL
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_ADDRESS, TO_EMAIL, msg.as_string())
-
-    # increment episode
-    state["next_episode"] += 1
-
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f)
-
-    print("Email sent and episode incremented.")
-
-else:
-
-    print("No valid episode found.")
-
