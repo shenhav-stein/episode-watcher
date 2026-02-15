@@ -54,44 +54,22 @@ valid_entry_text = ""
 if table:
     rows = table.find_all("tr")[1:]
 
-    for row in rows:
-        cols = row.find_all("td")
-        if len(cols) < 4:
-            continue
+    print(f"Found {len(rows)} rows")
 
-        title_tag = cols[1].find("a", class_="detLink")
+    for row in rows:
+        title_tag = row.find("a", class_="detLink")
         if not title_tag:
             continue
 
         title = title_tag.get_text(strip=True)
-
-        # Seeder / Leecher columns
-        try:
-            se = int(cols[2].get_text(strip=True))
-            le = int(cols[3].get_text(strip=True))
-        except:
-            continue
-
-        # Extract size from description
-        desc_font = cols[1].find("font", class_="detDesc")
-        if not desc_font:
-            continue
-
-        desc_text = desc_font.get_text()
-
-        size_match = re.search(r"Size ([\d\.]+) GiB", desc_text)
-        if not size_match:
-            continue
-
-        size = float(size_match.group(1))
-
-        print(f"Found: {title} | SE={se} LE={le} Size={size}")
+        print("TITLE FOUND:", title)
 
         if SERIES_NAME in title and episode_str in title:
-            if se > 100 and le > 100 and size > 1.00:
-                found_valid = True
-                valid_entry_text = f"{title}\nSE: {se} | LE: {le} | Size: {size} GiB"
-                break
+            found_valid = True
+            valid_entry_text = title
+            break
+else:
+    print("No searchResult table found!")
 
 # =========================
 # Send email if found
@@ -119,3 +97,4 @@ if found_valid:
 else:
 
     print("No valid episode found.")
+
