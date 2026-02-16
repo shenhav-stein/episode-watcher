@@ -3,10 +3,9 @@ import smtplib
 import json
 import os
 from email.mime.text import MIMEText
-import xml.etree.ElementTree as ET
 
 SERIES_NAME = "A Knight of the Seven Kingdoms"
-RSS_URL = "https://thepiratebay.org/search.php?q=A+Knight+of+the+Seven+Kingdoms&all=on&search=Pirate+Search&page=0&orderby="
+API_URL = "https://apibay.org/q.php?q=A+Knight+of+the+Seven+Kingdoms"
 
 STATE_FILE = "state.json"
 
@@ -26,21 +25,25 @@ episode_str = f"S01E{episode_number:02d}"
 
 print(f"Looking for {episode_str}")
 
-response = requests.get(RSS_URL, timeout=30)
-root = ET.fromstring(response.content)
+response = requests.get(API_URL, timeout=30)
+results = response.json()
 
 found_valid = False
 valid_entry_text = ""
 
-for item in root.findall(".//item"):
-    title = item.find("title").text
+for item in results:
+    title = item.get("name", "")
+    seeders = int(item.get("seeders", 0))
+    leechers = int(item.get("leechers", 0))
+    size = int(item.get("size", 0)) / (1024**3)  # bytes to GiB
 
-    print("RSS TITLE:", title)
+    print(f"Found: {title} | SE={seeders} LE={leechers} Size={size:.2f} GiB")
 
     if SERIES_NAME in title and episode_str in title:
-        found_valid = True
-        valid_entry_text = title
-        break
+        if seeders > 100 and leechers > 100 and size > 1.00:
+            found_valid = True
+            valid_entry_text = f"{title}\nSE: {seeders} | LE: {leechers} | Size: {size:.2f} GiB"
+            break
 
 if found_valid:
 
@@ -62,4 +65,3 @@ if found_valid:
 
 else:
     print("No valid episode found.")
-
